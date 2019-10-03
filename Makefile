@@ -1,4 +1,4 @@
-GPU=0
+GPU=1
 CUDNN=0
 OPENCV=0
 OPENMP=0
@@ -9,6 +9,8 @@ ARCH= -gencode arch=compute_30,code=sm_30 \
       -gencode arch=compute_50,code=[sm_50,compute_50] \
       -gencode arch=compute_52,code=[sm_52,compute_52]
 #      -gencode arch=compute_20,code=[sm_20,sm_21] \ This one is deprecated?
+
+ARCH= -gencode arch=compute_70,code=[sm_70,compute_70] #Titan V
 
 # This is what I use, uncomment if you know your arch and want to specify
 # ARCH= -gencode arch=compute_52,code=compute_52
@@ -62,7 +64,7 @@ OBJ=gemm.o utils.o cuda.o deconvolutional_layer.o convolutional_layer.o list.o i
 EXECOBJA=captcha.o lsd.o super.o art.o tag.o cifar.o go.o rnn.o segmenter.o regressor.o classifier.o coco.o yolo.o detector.o nightmare.o instance-segmenter.o darknet.o
 ifeq ($(GPU), 1) 
 LDFLAGS+= -lstdc++ 
-OBJ+=convolutional_kernels.o deconvolutional_kernels.o activation_kernels.o im2col_kernels.o col2im_kernels.o blas_kernels.o crop_layer_kernels.o dropout_layer_kernels.o maxpool_layer_kernels.o avgpool_layer_kernels.o
+OBJ+=gemm_kernels.o convolutional_kernels.o deconvolutional_kernels.o activation_kernels.o im2col_kernels.o col2im_kernels.o blas_kernels.o crop_layer_kernels.o dropout_layer_kernels.o maxpool_layer_kernels.o avgpool_layer_kernels.o
 endif
 
 EXECOBJ = $(addprefix $(OBJDIR), $(EXECOBJA))

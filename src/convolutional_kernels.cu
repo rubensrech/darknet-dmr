@@ -2,6 +2,8 @@
 #include "curand.h"
 #include "cublas_v2.h"
 
+#include "gemm_kernels.h"
+
 extern "C" {
 #include "convolutional_layer.h"
 #include "batchnorm_layer.h"
@@ -118,7 +120,8 @@ void forward_convolutional_layer_gpu(convolutional_layer l, network net)
             } else {
                 im2col_gpu(im, l.c/l.groups, l.h, l.w, l.size, l.stride, l.pad, b);
             }
-            gemm_gpu(0,0,m,n,k,1,a,k,b,n,1,c,n);
+            // gemm_gpu(0,0,m,n,k,1,a,k,b,n,1,c,n);
+            matrix_mult_dmr(a, b, m, n, k, c, net.index);
         }
     }
 #endif
