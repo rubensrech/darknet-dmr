@@ -2,6 +2,7 @@
 #define DRM_KERNELS_H
 
 #include "stdint.h"
+#include "dmr_types.h"
 
 extern "C" { 
 #include "cuda.h"
@@ -12,14 +13,6 @@ extern "C" {
 #define ZERO_HALF 4.166e-05
 
 #define BLOCK_SIZE 16
-
-#define LAYERS 107
-
-typedef struct {
-    unsigned long long errors;
-} LayerErrors;
-
-__device__ LayerErrors errorsPerLayer[LAYERS] = {0};
 
 __device__ __forceinline__ void axpy__(const double a, const double b, double &c) {
     c = __fma_rn(a, b, c);
@@ -63,7 +56,7 @@ __device__ int check_bit_error(const float &lhs, const float &rhs) {
 }
 
 template<const uint32_t THRESH, const uint32_t COUNT>
-__global__ void matrix_mult_dmr_kernel(float *A, float *B, int M, int N, int K, float *C, int layerIndex) {
+__global__ void matrix_mult_dmr_kernel(float *A, float *B, int M, int N, int K, float *C, unsigned long long *errorsCount) {
 
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -79,7 +72,7 @@ __global__ void matrix_mult_dmr_kernel(float *A, float *B, int M, int N, int K, 
 
             if ((i % COUNT) == 0) {
                 if (check_bit_error<THRESH>(acc_half_t, acc_real_t)) {
-                    atomicAdd(&errorsPerLayer[layerIndex].errors, 1);
+                    atomicAdd(errorsCount, 1);
                 }
                 acc_half_t = __half(acc_real_t);
             }
@@ -90,13 +83,13 @@ __global__ void matrix_mult_dmr_kernel(float *A, float *B, int M, int N, int K, 
 
 }
 
-extern "C" void matrix_mult_dmr(float *A, float *B, int M, int N, int K, float *C, int layerIndex) {
+extern "C" void matrix_mult_dmr(float *A, float *B, int M, int N, int K, float *C, unsigned long long* errorsCount) {
     // printf("layer %d: [%dx%d] X [%dx%d] = [%dx%d]\n", layerIndex, M, K, K, N, M, N);
     unsigned int grid_rows = (M + BLOCK_SIZE - 1) / BLOCK_SIZE;
     unsigned int grid_cols = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
     dim3 dimGrid(grid_cols, grid_rows);
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-    matrix_mult_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<dimGrid,dimBlock>>>(A, B, M, N, K, C, layerIndex);
+    matrix_mult_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<dimGrid,dimBlock>>>(A, B, M, N, K, C, errorsCount);
     check_error(cudaError_t(cudaPeekAtLastError()));
 }
 

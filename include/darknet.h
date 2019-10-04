@@ -5,6 +5,8 @@
 #include <string.h>
 #include <pthread.h>
 
+#include "dmr_types.h"
+
 #ifdef GPU
     #define BLOCK 512
 
@@ -492,6 +494,8 @@ typedef struct network{
     float *delta_gpu;
     float *output_gpu;
 #endif
+
+    LayerErrors *errors;
 
 } network;
 
