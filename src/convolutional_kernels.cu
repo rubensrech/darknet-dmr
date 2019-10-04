@@ -2,7 +2,7 @@
 #include "curand.h"
 #include "cublas_v2.h"
 
-#include "gemm_kernels.h"
+#include "dmr_kernels.h"
 
 extern "C" {
 #include "convolutional_layer.h"

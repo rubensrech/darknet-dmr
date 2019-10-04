@@ -1,19 +1,16 @@
-#ifndef GEMM_KERNELS_H
-#define GEMM_KERNELS_H
+#ifndef DRM_KERNELS_H
+#define DRM_KERNELS_H
 
 #include "stdint.h"
 
 #include <assert.h>
-#include "cuda.h"
+// #include "cuda.h"
 
 #define ZERO_FLOAT 2.2e-20
 #define ZERO_DOUBLE 1.4e-40
 #define ZERO_HALF 4.166e-05
 
 #define BLOCK_SIZE 16
-
-#define THRESHOLD 1
-#define CHECK_BLOCK 100
 
 #define LAYERS 107
 
@@ -92,15 +89,14 @@ __global__ void matrix_mult_dmr_kernel(float *A, float *B, int M, int N, int K, 
 
 }
 
-// void matrix_mult_dmr(float *A, float *B, int M, int N, int K, float *C, int layerIndex) {
-//     // printf("layer %d: [%dx%d] X [%dx%d] = [%dx%d]\n", layerIndex, M, K, K, N, M, N);
-//     unsigned int grid_rows = (M + BLOCK_SIZE - 1) / BLOCK_SIZE;
-//     unsigned int grid_cols = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-//     dim3 dimGrid(grid_cols, grid_rows);
-//     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-//     matrix_mult_dmr_kernel<1, 100><<<dimGrid,dimBlock>>>(A, B, M, N, K, C, layerIndex);
-// 	// check_error(cudaError_t(cudaPeekAtLastError()));
-// }
+extern "C" void matrix_mult_dmr(float *A, float *B, int M, int N, int K, float *C, int layerIndex) {
+    // printf("layer %d: [%dx%d] X [%dx%d] = [%dx%d]\n", layerIndex, M, K, K, N, M, N);
+    unsigned int grid_rows = (M + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    unsigned int grid_cols = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    dim3 dimGrid(grid_cols, grid_rows);
+    dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
+    matrix_mult_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<dimGrid,dimBlock>>>(A, B, M, N, K, C, layerIndex);
+    // check_error(cudaError_t(cudaPeekAtLastError()));
+}
 
-
-#endif /* GEMM_KERNELS_H */
+#endif /* DMR_KERNELS_H */
