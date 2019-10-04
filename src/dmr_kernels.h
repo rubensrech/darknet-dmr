@@ -3,8 +3,6 @@
 
 #include "stdint.h"
 
-#include <assert.h>
-
 extern "C" { 
 #include "cuda.h"
 }
