@@ -255,11 +255,11 @@ __global__ void activate_array_dmr_kernel(float *x, int n, ACTIVATION a, unsigne
         register float out_f = activate_dmr_kernel<float>(x[i], a);
         register __half out_h = activate_dmr_kernel<__half>(__float2half(x[i]), a);
 
-        // if (COUNT == 1) {
+        if (COUNT == 1) {
             if (check_bit_error<THRESH>(out_h, out_f)) {
                 atomicAdd(errorsCount, 1);
             }
-        // }
+        }
 
         x[i] = out_f;
     }
@@ -297,11 +297,11 @@ __global__ void upsample_dmr_kernel(size_t N, float *x, int w, int h, int c, int
     axpy__(scale, x[in_index], out_float);
     axpy__(scale, x[in_index], out_half);
 
-    // if (COUNT == 1) {
+    if (COUNT == 1) {
         if (check_bit_error<THRESH>(out_half, out_float)) {
             atomicAdd(errorsCount, 1);
         }
-    // }
+    }
 
     // if(forward) out[out_index] += scale * x[in_index];
     // else atomicAdd(x+in_index, scale * out[out_index]);
