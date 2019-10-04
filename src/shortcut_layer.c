@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+extern void shortcut_dmr_gpu(int batch, int w1, int h1, int c1, float *add, int w2, int h2, int c2, float s1, float s2, float *out, unsigned long long *errorsCount);
+extern void activate_array_dmr_gpu(float *x, int n, ACTIVATION a, unsigned long long *errorsCount);
+
 layer make_shortcut_layer(int batch, int index, int w, int h, int c, int w2, int h2, int c2)
 {
     fprintf(stderr, "res  %3d                %4d x%4d x%4d   ->  %4d x%4d x%4d\n",index, w2,h2,c2, w,h,c);
@@ -77,8 +80,11 @@ void backward_shortcut_layer(const layer l, network net)
 void forward_shortcut_layer_gpu(const layer l, network net)
 {
     copy_gpu(l.outputs*l.batch, net.input_gpu, 1, l.output_gpu, 1);
-    shortcut_gpu(l.batch, l.w, l.h, l.c, net.layers[l.index].output_gpu, l.out_w, l.out_h, l.out_c, l.alpha, l.beta, l.output_gpu);
-    activate_array_gpu(l.output_gpu, l.outputs*l.batch, l.activation);
+    unsigned long long *errorCounter = &(net.dmr_errors_gpu[net.index]).errors;
+    shortcut_dmr_gpu(l.batch, l.w, l.h, l.c, net.layers[l.index].output_gpu, l.out_w, l.out_h, l.out_c, l.alpha, l.beta, l.output_gpu, errorCounter);
+    activate_array_dmr_gpu(l.output_gpu, l.outputs*l.batch, l.activation, errorCounter);
+    // activate_array_gpu(l.output_gpu, l.outputs*l.batch, l.activation);
+    // shortcut_gpu(l.batch, l.w, l.h, l.c, net.layers[l.index].output_gpu, l.out_w, l.out_h, l.out_c, l.alpha, l.beta, l.output_gpu);
 }
 
 void backward_shortcut_layer_gpu(const layer l, network net)
