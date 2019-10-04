@@ -488,15 +488,15 @@ typedef struct network{
     float *cost;
     float clip;
 
+    LayerErrors *dmr_errors;
+
 #ifdef GPU
     float *input_gpu;
     float *truth_gpu;
     float *delta_gpu;
     float *output_gpu;
+    LayerErrors *dmr_errors_gpu;
 #endif
-
-    LayerErrors *errors;
-
 } network;
 
 typedef struct {

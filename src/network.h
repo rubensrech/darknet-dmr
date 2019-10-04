@@ -18,6 +18,8 @@ char *get_layer_string(LAYER_TYPE a);
 
 network *make_network(int n);
 
+LayerErrors *get_dmr_errors(network *net);
+
 
 float network_accuracy_multi(network *net, data d, int n);
 int get_predicted_class_network(network *net);

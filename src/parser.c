@@ -37,6 +37,9 @@
 #include "lstm_layer.h"
 #include "utils.h"
 
+#include "dmr_types.h"
+#include "cuda.h"
+
 typedef struct{
     char *type;
     list *options;
@@ -868,10 +871,15 @@ network *parse_network_cfg(char *filename)
     net->output = out.output;
     net->input = calloc(net->inputs*net->batch, sizeof(float));
     net->truth = calloc(net->truths*net->batch, sizeof(float));
+
+    net->dmr_errors = calloc(net->n, sizeof(LayerErrors));
 #ifdef GPU
     net->output_gpu = out.output_gpu;
     net->input_gpu = cuda_make_array(net->input, net->inputs*net->batch);
     net->truth_gpu = cuda_make_array(net->truth, net->truths*net->batch);
+
+    check_error(cudaMalloc((void**)&net->dmr_errors_gpu, sizeof(LayerErrors)*net->n));
+    check_error(cudaMemcpy(net->dmr_errors_gpu, net->dmr_errors, sizeof(LayerErrors)*net->n, cudaMemcpyHostToDevice));
 #endif
     if(workspace_size){
         //printf("%ld\n", workspace_size);

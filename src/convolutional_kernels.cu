@@ -121,7 +121,8 @@ void forward_convolutional_layer_gpu(convolutional_layer l, network net)
                 im2col_gpu(im, l.c/l.groups, l.h, l.w, l.size, l.stride, l.pad, b);
             }
             // gemm_gpu(0,0,m,n,k,1,a,k,b,n,1,c,n);
-            matrix_mult_dmr(a, b, m, n, k, c, &(net.errors[net.index]).errors);
+            unsigned long long *errorCounter = &(net.dmr_errors_gpu[net.index]).errors;
+            matrix_mult_dmr(a, b, m, n, k, c, errorCounter);
         }
     }
 #endif

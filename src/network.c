@@ -759,6 +759,12 @@ float *network_output(network *net)
 
 #ifdef GPU
 
+LayerErrors *get_dmr_errors(network *net) {
+    cudaError_t status = cudaMemcpy(net->dmr_errors, net->dmr_errors_gpu, sizeof(LayerErrors)*net->n, cudaMemcpyDeviceToHost);
+    check_error(status);
+    return net->dmr_errors;
+}
+
 void forward_network_gpu(network *netp)
 {
     network net = *netp;
