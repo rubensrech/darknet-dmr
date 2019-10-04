@@ -4,7 +4,10 @@
 #include "stdint.h"
 
 #include <assert.h>
-// #include "cuda.h"
+
+extern "C" { 
+#include "cuda.h"
+}
 
 #define ZERO_FLOAT 2.2e-20
 #define ZERO_DOUBLE 1.4e-40
@@ -96,7 +99,7 @@ extern "C" void matrix_mult_dmr(float *A, float *B, int M, int N, int K, float *
     dim3 dimGrid(grid_cols, grid_rows);
     dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
     matrix_mult_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<dimGrid,dimBlock>>>(A, B, M, N, K, C, layerIndex);
-    // check_error(cudaError_t(cudaPeekAtLastError()));
+    check_error(cudaError_t(cudaPeekAtLastError()));
 }
 
 #endif /* DMR_KERNELS_H */
