@@ -204,13 +204,6 @@ __device__ T plse_activate_kernel(T x)
     if(x > T(4))  return T(.01f) * (x - T(4)) + T(1);
     return T(.125f)*x + T(.5f);
 }
-
-// __device__ float stair_activate_kernel(float x)
-// {
-//     int n = floorf(x);
-//     if (n%2 == 0) return floorf(x/2);
-//     else return (x - n) + floorf(x/2);
-// }
 __device__ __half stair_activate_kernel(__half x)
 {
     int n = hfloor(x);
@@ -259,21 +252,67 @@ __global__ void activate_array_dmr_kernel(float *x, int n, ACTIVATION a, unsigne
     if(i < n) {
         // x[i] = activate_dmr_kernel(x[i], a);
 
-        register float out_f = 0.0;
-        register __half out_h = 0.0;
-        out_f = activate_dmr_kernel<float>(x[i], a);
-        out_h = activate_dmr_kernel<__half>(__float2half(x[i]), a);
+        register float out_f = activate_dmr_kernel<float>(x[i], a);
+        register __half out_h = activate_dmr_kernel<__half>(__float2half(x[i]), a);
 
         // if (COUNT == 1) {
             if (check_bit_error<THRESH>(out_h, out_f)) {
                 atomicAdd(errorsCount, 1);
             }
         // }
+
+        x[i] = out_f;
     }
 }
 
 extern "C" void activate_array_dmr_gpu(float *x, int n, ACTIVATION a, unsigned long long *errorsCount) {
     activate_array_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<cuda_gridsize(n), BLOCK>>>(x, n, a, errorsCount);
+    check_error(cudaPeekAtLastError());
+}
+
+// > UPSAMPLE
+
+template<const uint32_t THRESH, const uint32_t COUNT>
+__global__ void upsample_dmr_kernel(size_t N, float *x, int w, int h, int c, int batch, int stride, int forward, float scale, float *out, unsigned long long *errorsCount) {
+    size_t i = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
+    if(i >= N) return;
+    int out_index = i;
+    int out_w = i%(w*stride);
+    i = i/(w*stride);
+    int out_h = i%(h*stride);
+    i = i/(h*stride);
+    int out_c = i%c;
+    i = i/c;
+    int b = i%batch;
+
+    int in_w = out_w / stride;
+    int in_h = out_h / stride;
+    int in_c = out_c;
+
+    int in_index = b*w*h*c + in_c*w*h + in_h*w + in_w;
+
+    register float out_float = out[out_index];
+    register __half out_half = __float2half(out[out_index]);
+
+    axpy__(scale, x[in_index], out_float);
+    axpy__(scale, x[in_index], out_half);
+
+    // if (COUNT == 1) {
+        if (check_bit_error<THRESH>(out_half, out_float)) {
+            atomicAdd(errorsCount, 1);
+        }
+    // }
+
+    // if(forward) out[out_index] += scale * x[in_index];
+    // else atomicAdd(x+in_index, scale * out[out_index]);
+    
+    if(forward) out[out_index] = out_float;
+    else atomicAdd(x+in_index, scale * out[out_index]);
+}
+
+extern "C" void upsample_dmr_gpu(float *in, int w, int h, int c, int batch, int stride, int forward, float scale, float *out, unsigned long long *errorsCount) {
+    size_t size = w*h*c*batch*stride*stride;
+    upsample_dmr_kernel<THRESHOLD, CHECK_BLOCK><<<cuda_gridsize(size), BLOCK>>>(size, in, w, h, c, batch, stride, forward, scale, out, errorsCount);
     check_error(cudaPeekAtLastError());
 }
 

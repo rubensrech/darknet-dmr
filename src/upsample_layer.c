@@ -4,6 +4,8 @@
 
 #include <stdio.h>
 
+extern void upsample_dmr_gpu(float *in, int w, int h, int c, int batch, int stride, int forward, float scale, float *out, unsigned long long *errorsCount);
+
 layer make_upsample_layer(int batch, int w, int h, int c, int stride)
 {
     layer l = {0};
@@ -87,11 +89,14 @@ void backward_upsample_layer(const layer l, network net)
 #ifdef GPU
 void forward_upsample_layer_gpu(const layer l, network net)
 {
+    unsigned long long *errorCounter = &(net.dmr_errors_gpu[net.index]).errors;
     fill_gpu(l.outputs*l.batch, 0, l.output_gpu, 1);
     if(l.reverse){
-        upsample_gpu(l.output_gpu, l.out_w, l.out_h, l.c, l.batch, l.stride, 0, l.scale, net.input_gpu);
+        upsample_dmr_gpu(l.output_gpu, l.out_w, l.out_h, l.c, l.batch, l.stride, 0, l.scale, net.input_gpu, errorCounter);
+        // upsample_gpu(l.output_gpu, l.out_w, l.out_h, l.c, l.batch, l.stride, 0, l.scale, net.input_gpu);
     }else{
-        upsample_gpu(net.input_gpu, l.w, l.h, l.c, l.batch, l.stride, 1, l.scale, l.output_gpu);
+        upsample_dmr_gpu(net.input_gpu, l.w, l.h, l.c, l.batch, l.stride, 1, l.scale, l.output_gpu, errorCounter);
+        // upsample_gpu(net.input_gpu, l.w, l.h, l.c, l.batch, l.stride, 1, l.scale, l.output_gpu);
     }
 }
 

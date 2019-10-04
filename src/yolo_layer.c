@@ -10,6 +10,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern void activate_array_dmr_gpu(float *x, int n, ACTIVATION a, unsigned long long *errorsCount);
+
 layer make_yolo_layer(int batch, int w, int h, int n, int total, int *mask, int classes)
 {
     int i;
@@ -346,14 +348,17 @@ int get_yolo_detections(layer l, int w, int h, int netw, int neth, float thresh,
 
 void forward_yolo_layer_gpu(const layer l, network net)
 {
+    unsigned long long *errorCounter = &(net.dmr_errors_gpu[net.index]).errors;
     copy_gpu(l.batch*l.inputs, net.input_gpu, 1, l.output_gpu, 1);
     int b, n;
     for (b = 0; b < l.batch; ++b){
         for(n = 0; n < l.n; ++n){
             int index = entry_index(l, b, n*l.w*l.h, 0);
-            activate_array_gpu(l.output_gpu + index, 2*l.w*l.h, LOGISTIC);
+            activate_array_dmr_gpu(l.output_gpu + index, 2*l.w*l.h, LOGISTIC, errorCounter);
+            // activate_array_gpu(l.output_gpu + index, 2*l.w*l.h, LOGISTIC);
             index = entry_index(l, b, n*l.w*l.h, 4);
-            activate_array_gpu(l.output_gpu + index, (1+l.classes)*l.w*l.h, LOGISTIC);
+            activate_array_dmr_gpu(l.output_gpu + index, (1+l.classes)*l.w*l.h, LOGISTIC, errorCounter);
+            // activate_array_gpu(l.output_gpu + index, (1+l.classes)*l.w*l.h, LOGISTIC);
         }
     }
     if(!net.train || l.onlyforward){
